@@ -87,6 +87,8 @@ class AuthorizationManager extends RouterModuleClient implements RealmModuleInte
     public function handleMessage(MessageEvent $messageEvent)
     {
         if (!$this->isAuthorizedTo($messageEvent->session, $messageEvent->message)) {
+            error_log('session not authorized to ' . json_encode($messageEvent->message->jsonSerialize())
+                . json_encode($messageEvent->session->getMetaInfo()));
             $messageEvent->session->sendMessage(ErrorMessage::createErrorMessageFromMessage($messageEvent->message, 'wamp.error.not_authorized'));
             $messageEvent->stopPropagation();
         }
@@ -125,10 +127,12 @@ class AuthorizationManager extends RouterModuleClient implements RealmModuleInte
         // admin can do anything - pretty important
         // if this isn't here - then we can't setup any other rules
         if ($authenticationDetails->hasAuthRole('admin')) {
+            error_log('ROLE: ADMIN');
             return true;
         }
 
         if (!$this->isReady()) {
+            error_log('ROLE: NOT READY');
             return false;
         }
 
@@ -171,6 +175,9 @@ class AuthorizationManager extends RouterModuleClient implements RealmModuleInte
 
         $matches = [];
 
+        error_log('MATCHING: ' . $action . ' ' . $uri . ' ' . json_encode($rolesToCheck));
+        error_log(json_encode($this->rules));
+
         foreach ($rolesToCheck as $role) {
             if (isset($this->rules[$role])) {
                 // if there are identical matches - we use the
@@ -188,6 +195,8 @@ class AuthorizationManager extends RouterModuleClient implements RealmModuleInte
                 $matches = array_merge($matches, $m);
             }
         }
+
+        error_log('matches ' . json_encode($matches));
 
         // sort the list by length
         $keys = array_map('strlen', array_keys($matches));

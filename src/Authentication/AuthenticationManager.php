@@ -223,8 +223,10 @@ class AuthenticationManager extends RouterModuleClient implements RealmModuleInt
             return;
         }
 
+        // this is basically: if realm has provider, and we didn't respond yet?
         // If no authentication providers are registered for this realm send an abort message
-        if ($this->realmHasAuthProvider($realm->getRealmName())) {
+        if (!$this->realmHasAuthProvider($realm->getRealmName())) {
+            error_log('Realm ' . $realm->getRealmName() . ' does not have an auth provider ' . json_encode($this->authMethods));
             $session->abort(new \stdClass(), 'wamp.error.not_authorized');
 
             return;
@@ -268,6 +270,7 @@ class AuthenticationManager extends RouterModuleClient implements RealmModuleInt
             // this is handling the return of the onhello RPC call
 
             if (isset($res[0]) && $res[0] === 'FAILURE') {
+                error_log('ERROR NO HELLO');
                 $this->abortSessionUsingResponse($session, $res);
 
                 return;
@@ -368,6 +371,7 @@ class AuthenticationManager extends RouterModuleClient implements RealmModuleInt
             if ($res[0] === 'SUCCESS') {
                 $this->sendWelcomeMessage($session, $res[1]);
             } elseif (isset($res[0]) && $res[0] === 'FAILURE') {
+                error_log('ERROR NO AUTHENTICATE');
                 $this->abortSessionUsingResponse($session, $res);
             } else {
                 $session->abort(new \stdClass(), 'thruway.error.authentication_failure');
@@ -393,7 +397,7 @@ class AuthenticationManager extends RouterModuleClient implements RealmModuleInt
         // now we send our authenticate information to the RPC
         $onAuthenticateHandler = $authMethodInfo['handlers']->onauthenticate;
 
-        $this->session->call($onAuthenticateHandler, [$arguments])
+            $this->session->call($onAuthenticateHandler, [$arguments])
             ->then($onAuthenticateSuccess, $onAuthenticateError);
 
     }
@@ -592,6 +596,7 @@ class AuthenticationManager extends RouterModuleClient implements RealmModuleInt
 
         if (!isset($response[1]) || !is_object($response[1])) {
             // there are no other details to send - just fail it
+            error_log('NO 1 OR NO OBJECT 1 ' . json_encode($response));
             $session->abort(new \stdClass(), 'thruway.error.authentication_failure');
             return true;
         }

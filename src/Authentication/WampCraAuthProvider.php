@@ -41,10 +41,12 @@ class WampCraAuthProvider extends AbstractAuthProviderClient
         $sessionInfo = array_shift($args);
 
         if (!is_array($helloMsg)) {
+            error_log('HELLO MSG NOT ARRAY');
             return ['ERROR'];
         }
 
         if (!is_object($sessionInfo)) {
+            error_log('SESSION INFO NOT OBJECT');
             return ['ERROR'];
         }
 
@@ -55,6 +57,7 @@ class WampCraAuthProvider extends AbstractAuthProviderClient
             || !isset($helloMsg->getDetails()->authid)
             || !$this->getUserDb() instanceof WampCraUserDbInterface
         ) {
+            error_log('NOT HELLO MESSAGE, NO SESSION INFO, NO AUTH ID, NOT USER DB');
             return ['ERROR'];
         }
 
@@ -62,6 +65,7 @@ class WampCraAuthProvider extends AbstractAuthProviderClient
         $user   = $this->getUserDb()->get($authid);
 
         if (!$user) {
+            error_log('NO USER');
             return ['FAILURE'];
         }
 
@@ -73,6 +77,7 @@ class WampCraAuthProvider extends AbstractAuthProviderClient
         $now          = new \DateTime();
         $timeStamp    = $now->format($now::ISO8601);
         if (!isset($sessionInfo->sessionId)) {
+            error_log('NO SESSION ID');
             return ['ERROR'];
         }
         $sessionId = $sessionInfo->sessionId;
@@ -125,6 +130,7 @@ class WampCraAuthProvider extends AbstractAuthProviderClient
             || !isset($challenge->authid)
             || !$this->getUserDb() instanceof WampCraUserDbInterface
         ) {
+            error_log('NO CHALLENGE, NO AUTHID, NO USERDB');
             return ['FAILURE'];
         }
 
@@ -132,6 +138,7 @@ class WampCraAuthProvider extends AbstractAuthProviderClient
         $user   = $this->getUserDb()->get($authid);
 
         if (!$user) {
+            error_log('NO USER');
             return ['FAILURE'];
         }
 
@@ -139,6 +146,11 @@ class WampCraAuthProvider extends AbstractAuthProviderClient
         $token    = base64_encode(hash_hmac('sha256', json_encode($challenge), $keyToUse, true));
 
         if ($token != $signature) {
+            error_log('MISSSIGNATURE');
+            error_log("TOKEN " . $token);
+            error_log("SIGNATURE " . $signature);
+            error_log("KEY " . $keyToUse);
+            error_log("CHALLENGE " . json_encode($challenge));
             return ['FAILURE'];
         }
 
@@ -148,6 +160,7 @@ class WampCraAuthProvider extends AbstractAuthProviderClient
             'authid'       => $challenge->authid,
             'authprovider' => $challenge->authprovider
         ];
+        error_log('AUTH SUCCESS ' . json_encode($authDetails));
 
         return ['SUCCESS', $authDetails];
 
